@@ -171,33 +171,33 @@ const VisitView = () => {
                   <h3 className="text-lg font-bold">
                     {envCode}. {sectionLabels[envCode]}
                   </h3>
-                </div>
+          </div>
 
                 {/* Section Table */}
-                <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead>
+              <thead>
                       <tr className="bg-gray-50 border-b">
                         <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">المعيار</th>
                         <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الدرجة</th>
                         <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">التبرير</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                </tr>
+              </thead>
+              <tbody>
                       {sectionCriteria.map((item, idx) => {
-                        const criterion = item.criterion || {};
-                        return (
+                  const criterion = item.criterion || {};
+                  return (
                           <tr key={idx} className="border-b">
                             <td className="px-4 py-3">
                               <div className="font-medium text-gray-900">
                                 {item.id}: {visitLanguage === 'ar' ? criterion.label_ar : criterion.label_en}
-                              </div>
-                            </td>
+                        </div>
+                      </td>
                             <td className="px-4 py-3">
                               <div className="inline-block px-3 py-1 bg-blue-100 rounded text-blue-900 font-bold">
                                 {item.score || '4'}
                               </div>
-                            </td>
+                      </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <textarea
@@ -206,20 +206,20 @@ const VisitView = () => {
                                   className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm bg-white"
                                   rows={2}
                                 />
-                                <button
+                        <button
                                   onClick={() => copyJustification(item.justification || '')}
                                   className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors"
-                                >
+                        >
                                   نسخ
-                                </button>
+                        </button>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
               </div>
             );
           })}

@@ -202,5 +202,32 @@ export const getAllCriteria = () => {
   );
 };
 
+// Convert ELEOT_SECTIONS to ELEOT_ENVIRONMENTS format for compatibility
+export const ELEOT_ENVIRONMENTS = ELEOT_SECTIONS.reduce((acc, section) => {
+  acc[section.id] = {
+    id: section.id,
+    label_ar: section.label_ar,
+    label_en: section.label_en,
+    criteria: section.criteria
+  };
+  return acc;
+}, {});
+
+// Justification templates for scores
+export const JUSTIFICATION_TEMPLATES = {
+  ar: {
+    4: "لوحظ بوضوح تحقق: {indicator_text}، حيث كان متوافقاً تماماً مع الممارسات المرصودة.",
+    3: "لوحظ تحقق نسبي لـ: {indicator_text}، ولكنه لم يشمل جميع المتعلمين بشكل متسق.",
+    2: "لوحظ تحقق محدود لـ: {indicator_text}، حيث كان هناك بعض الأدلة ولكنها غير كافية.",
+    1: "لم يلاحظ تحقق واضح لـ: {indicator_text}، حيث كانت الأدلة غير كافية أو غائبة."
+  },
+  en: {
+    4: "It was clearly observed that: {indicator_text}, as it was fully consistent with the observed practices.",
+    3: "Partial achievement was observed for: {indicator_text}, but it did not consistently include all learners.",
+    2: "Limited achievement was observed for: {indicator_text}, where there was some evidence but it was insufficient.",
+    1: "No clear achievement was observed for: {indicator_text}, where evidence was insufficient or absent."
+  }
+};
+
 
 

@@ -1,4 +1,4 @@
-import { ELEOT_ENVIRONMENTS, JUSTIFICATION_TEMPLATES } from '../config/eleotConfig';
+import { ELEOT_SECTIONS, ELEOT_ENVIRONMENTS, JUSTIFICATION_TEMPLATES } from '../config/eleotConfig';
 
 // Detect language from text
 const detectLanguage = (text) => {

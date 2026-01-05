@@ -11,6 +11,8 @@ export const evaluateWithAI = async (data) => {
     segment,
     visit_date,
     lang = 'ar',
+    clarifications = {}, // New: clarification answers
+    selected_environments = [], // New: selected ELEOT environments
   } = data;
 
   // Validate required fields
@@ -33,6 +35,8 @@ export const evaluateWithAI = async (data) => {
         segment: segment || '',
         visit_date: visit_date || '',
         lang,
+        clarifications, // Pass clarifications to API
+        selected_environments, // Pass selected environments
       }),
     });
 

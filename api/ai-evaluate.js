@@ -27,6 +27,8 @@ export default async function handler(req, res) {
     segment,
     visit_date,
     lang = 'ar',
+    clarifications = {}, // New: clarification answers
+    selected_environments = [], // New: selected ELEOT environments
   } = req.body;
 
   // Required fields validation
@@ -37,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   // Build system prompt
-  const systemPrompt = buildSystemPrompt(lang);
+  const systemPrompt = buildSystemPrompt(lang, clarifications);
 
   // Build user prompt
   const userPrompt = buildUserPrompt({
@@ -47,6 +49,8 @@ export default async function handler(req, res) {
     grade: grade || '',
     segment: segment || '',
     visit_date: visit_date || '',
+    clarifications,
+    selected_environments,
   }, lang);
 
   try {
@@ -128,45 +132,57 @@ export default async function handler(req, res) {
 
 /**
  * Build system prompt for ELEOT evaluation
+ * Now includes clarification handling instructions
  */
-function buildSystemPrompt(lang = 'ar') {
+function buildSystemPrompt(lang = 'ar', clarifications = {}) {
+  const hasClarifications = clarifications && Object.keys(clarifications).length > 0;
+  
+  const clarificationInstructions = hasClarifications
+    ? (lang === 'ar'
+        ? `\n\n⚠️ تعليمات مهمة حول الأسئلة التوضيحية:\n- الأسئلة التوضيحية هي حقائق مؤكدة من قبل المقيّم.\n- يجب عليك تعديل الدرجات بناءً على هذه الحقائق.\n- لا تتجاهل الإجابات السلبية.\n- لا تعطي درجات كاملة إذا كانت الإجابات التوضيحية تتعارض مع الوصف.\n- استخدم الإجابات التوضيحية كأدلة إضافية لتعديل درجاتك.`
+        : `\n\n⚠️ Important Instructions on Clarification Questions:\n- Clarification answers are confirmed facts provided by the evaluator.\n- You MUST adjust scores based on these facts.\n- You MUST NOT ignore negative clarifications.\n- You MUST NOT give full scores if clarifications contradict the description.\n- Use clarification answers as additional evidence to adjust your scores.`)
+    : '';
+  
   if (lang === 'ar') {
     return `أنت خبير في تقييم الملاحظات الصفية باستخدام معايير ELEOT 2.0.
 قم بتقييم الملاحظة المقدمة وإرجاع النتائج بتنسيق JSON صحيح.
 يجب أن تكون النتيجة على الشكل التالي:
 {
-  "environments": [
+  "criteria": [
     {
-      "env_code": "A",
-      "env_score": 3.5,
-      "justification_ar": "التبرير بالعربية",
-      "evidence_ar": "الأدلة بالعربية"
+      "id": "A1",
+      "score": 4,
+      "justification": "التبرير بالعربية"
     }
   ],
-  "overall_recommendations_ar": "التوصيات العامة"
+  "recommendations": "التوصيات العامة بصيغة HTML",
+  "totalScore": 3.5,
+  "used_clarifications": ["equal_access", "fair_treatment"]
 }
-استخدم درجات من 1 إلى 4 لكل بيئة.`;
+استخدم درجات من 1 إلى 4 لكل معيار.${clarificationInstructions}`;
   } else {
     return `You are an expert in evaluating classroom observations using ELEOT 2.0 standards.
 Evaluate the provided observation and return results in valid JSON format.
 The result should be in the following format:
 {
-  "environments": [
+  "criteria": [
     {
-      "env_code": "A",
-      "env_score": 3.5,
-      "justification_en": "Justification in English",
-      "evidence_en": "Evidence in English"
+      "id": "A1",
+      "score": 4,
+      "justification": "Justification in English"
     }
   ],
-  "overall_recommendations_en": "Overall recommendations"
+  "recommendations": "Overall recommendations in HTML format",
+  "totalScore": 3.5,
+  "used_clarifications": ["equal_access", "fair_treatment"]
 }
-Use scores from 1 to 4 for each environment.`;
+Use scores from 1 to 4 for each criterion.${clarificationInstructions}`;
   }
 }
 
 /**
  * Build user prompt for ELEOT evaluation
+ * Now includes clarification answers
  */
 function buildUserPrompt(data, lang = 'ar') {
   const {
@@ -176,7 +192,16 @@ function buildUserPrompt(data, lang = 'ar') {
     grade,
     segment,
     visit_date,
+    clarifications = {},
+    selected_environments = [],
   } = data;
+
+  // Build clarification summary
+  const clarificationSummary = buildClarificationSummary(clarifications, lang);
+  
+  const environmentsList = selected_environments.length > 0 
+    ? selected_environments.join(', ')
+    : 'A, B, C, D, E, F, G';
 
   if (lang === 'ar') {
     return `قم بتقييم الملاحظة التالية:
@@ -189,8 +214,10 @@ function buildUserPrompt(data, lang = 'ar') {
 
 وصف الحصة:
 ${lesson_description}
+${clarificationSummary}
 
-قم بتقييم جميع البيئات (A, B, C, D, E, F, G) وأعطِ درجات وتبريرات لكل بيئة.`;
+قم بتقييم البيئات المحددة (${environmentsList}) وأعطِ درجات وتبريرات لكل معيار في هذه البيئات.
+${Object.keys(clarifications).length > 0 ? '⚠️ تأكد من استخدام الإجابات التوضيحية أعلاه في تقييمك.' : ''}`;
   } else {
     return `Evaluate the following observation:
 
@@ -202,8 +229,59 @@ Date: ${visit_date || 'Not specified'}
 
 Lesson Description:
 ${lesson_description}
+${clarificationSummary}
 
-Evaluate all environments (A, B, C, D, E, F, G) and provide scores and justifications for each environment.`;
+Evaluate the selected environments (${environmentsList}) and provide scores and justifications for each criterion in these environments.
+${Object.keys(clarifications).length > 0 ? '⚠️ Make sure to use the clarification answers above in your evaluation.' : ''}`;
   }
+}
+
+/**
+ * Build human-readable clarification summary
+ */
+function buildClarificationSummary(clarifications, lang = 'ar') {
+  if (!clarifications || Object.keys(clarifications).length === 0) {
+    return '';
+  }
+
+  const questionMap = {
+    'equal_access': {
+      ar: 'الوصول المتساوي',
+      en: 'Equal Access',
+    },
+    'fair_treatment': {
+      ar: 'المعاملة العادلة',
+      en: 'Fair Treatment',
+    },
+    'respect_empathy': {
+      ar: 'الاحترام والتعاطف',
+      en: 'Respect and Empathy',
+    },
+    'challenging_activities': {
+      ar: 'الأنشطة الصعبة',
+      en: 'Challenging Activities',
+    },
+    'intellectual_risk': {
+      ar: 'المخاطرة الفكرية',
+      en: 'Intellectual Risk-taking',
+    },
+  };
+
+  const lines = [];
+  if (lang === 'ar') {
+    lines.push('\n\n📋 الأسئلة التوضيحية والإجابات:');
+    Object.entries(clarifications).forEach(([key, value]) => {
+      const questionLabel = questionMap[key]?.ar || key;
+      lines.push(`- ${questionLabel}: ${value}`);
+    });
+  } else {
+    lines.push('\n\n📋 Clarification Questions and Answers:');
+    Object.entries(clarifications).forEach(([key, value]) => {
+      const questionLabel = questionMap[key]?.en || key;
+      lines.push(`- ${questionLabel}: ${value}`);
+    });
+  }
+
+  return lines.join('\n');
 }
 

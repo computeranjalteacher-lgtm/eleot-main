@@ -64,6 +64,7 @@ export const saveVisit = async (visitData, environmentScores) => {
         supervisor_email: user.email,
         lesson_description: visitData.lessonDescription || null,
         overall_score: visitData.overallScore || null,
+        clarifications: visitData.clarifications || null, // Store clarifications
       })
       .select('id')
       .single();
